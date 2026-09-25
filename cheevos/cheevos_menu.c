@@ -27,6 +27,8 @@
 #include "../gfx/video_driver.h"
 #include "../tasks/tasks_internal.h"
 #include "../file_path_special.h"
+#include "../paths.h"
+#include "../configuration.h"
 #include "../msg_hash.h"
 
 #include "cheevos.h"
@@ -489,6 +491,40 @@ uintptr_t rcheevos_menu_get_badge_texture(unsigned menu_offset)
    }
 
    return 0;
+}
+
+bool rcheevos_menu_get_screenshot_path(unsigned menu_offset, char *path, size_t len)
+{
+   const rcheevos_locals_t* rcheevos_locals = get_rcheevos_locals();
+   const rc_client_achievement_t* achievement;
+   const char* screenshot_dir;
+   int written;
+
+   if (!path || !len)
+      return false;
+
+   path[0] = '\0';
+   if (menu_offset >= rcheevos_locals->menuitem_count ||
+       rcheevos_locals->menuitems[menu_offset].type != RCHEEVOS_MENU_ACHIEVEMENT)
+      return false;
+
+   achievement = rcheevos_locals->menuitems[menu_offset].source.achievement.achievement;
+   if (!achievement)
+      return false;
+
+   screenshot_dir = config_get_ptr()->paths.directory_screenshot;
+   written = snprintf(path, len, "%s/%s-cheevo-%u.png",
+         screenshot_dir,
+         path_basename(path_get(RARCH_PATH_BASENAME)),
+         (unsigned)achievement->id);
+
+   if (written < 0 || (size_t)written >= len || !path_is_valid(path))
+   {
+      path[0] = '\0';
+      return false;
+   }
+
+   return true;
 }
 
 static bool rcheevos_menu_achievement_in_list(const rc_client_achievement_t* achievement, rc_client_achievement_list_t* list, uint32_t subset_id)
